@@ -1,0 +1,148 @@
+Enabling LXD and LXC on Centos Linux flavours
+   Step 1 – Update CentOS 7.x box
+      sudo yum update
+        (reboot linux box if there are any update to the kernel )
+      sudo reboot
+      
+   Step 2 – Configure EPEL repo on CentOS 7.x
+      sudo yum install epel-release
+      sudo yum update
+      
+   Step 3 - How to enable and configure COPR repository for CentOS Linux
+   
+      sudo yum install yum-plugin-copr
+      sudo yum copr enable ngompa/snapcore-el7
+      
+   Step 4 – Install LXD
+   
+       sudo yum install snapd
+       sudo systemctl enable --now snapd.socket
+       
+   Step 5 – Configure the CentOS Linux kernel for LXD
+   
+        grubby --args="user_namespace.enable=1" --update-kernel="$(grubby --default-kernel)"
+        grubby --args="namespace.unpriv_enable=1" --update-kernel="$(grubby --default-kernel)"
+        sudo sh -c 'echo "user.max_user_namespaces=3883" > /etc/sysctl.d/99-userns.conf'
+        sudo reboot
+   
+  Step 6 – Install the LXD on CentOS
+  
+        snap search lxd
+        snap install lxd
+        ln -s /var/lib/snapd/snap /snap
+        
+      Verify it:
+        snap list
+        snap services
+        
+   Step 7 – Configuring LXD
+          sudo usermod -a -G lxd vagrant
+          
+        Use the id command to verify it:
+          newgrp lxd
+          id
+        
+        Make sure we can talk to lxd server:
+          lxc list
+        
+        To configure LXD on CentOS 7, run:
+           lxd init
+           
+      Step 8 – Create and launch your first container
+      
+           lxc image list images:
+           lxc image list images: | grep -i centos
+           lxc image list images: | grep -u ubuntu
+           
+      How create and setup your first container
+      
+            lxc launch images:{distro}/{version}/{arch} {container-name-here}
+               
+                ex: lxc launch images:centos/7/amd64 cenots-db
+               
+             To access the VM/container:
+             
+             lxc list
+             lxc exec centos-db bash
+      
+      Ubuntu Linux 16.4 “xenial” LTS VM
+      
+             lxc launch images:ubuntu/xenial/amd64 ubuntu-nginx
+      
+      Fedora Linux 28 VM
+      
+              lxc launch images:fedora/28/amd64 fedora27-c1
+              
+       To start/stop/restart containers use:
+       
+        lxc start container-name
+        lxc stop container-name
+        lxc restart container-name
+      
+        Remove or delete container
+        
+         lxc delete container-name
+         lxc delete nginx-c1
+        
+        Getting info about your container:
+        
+         lxc info container
+         lxc info centos-db
+         
+        Setting up iptables rules to redirect traffic (type commands on host)
+        
+        The syntax is as follows to redirect traffic for 443 coming on public IP 104.20.186.5 to container IP 10.86.112.210:443
+        
+          iptables -t nat -I PREROUTING -i eth0 -p TCP -d 104.20.186.5 --dport 443 -j DNAT --to-destination 10.86.112.210:443
+          
+        CentOS uses the firwalld. To find the default firewalld zone, run:
+          
+          sudo firewall-cmd --get-default-zone
+        
+        Open port 443 for public zone
+        
+          sudo firewall-cmd --zone=public --add-service=https --permanent
+          
+        Forward port 443 to the LXD server 10.86.112.210:443
+        
+          sudo firewall-cmd --permanent --zone=public --add-forward-port=port=443:proto=tcp:toport=443:toaddr=10.86.112.210
+          
+        Reload the fireall
+        
+          sudo firewall-cmd --reload
+          
+        Test it. Fire the web browser and type url:
+        
+           https://104.20.186.5
+           
+           command	Description
+alias	Manage command aliases
+cluster	Manage cluster members
+config	Manage container and server configuration options
+console	Attach to container consoles
+copy	Copy containers within or in between LXD instances
+delete	Delete containers and snapshots
+exec	Execute commands in containers
+export	Export container backups
+file	Manage files in containers
+help	Help about any command
+image	Manage images
+import	Import container backups
+info	Show container or server information
+launch	Create and start containers from images
+list	List containers
+move	Move containers within or in between LXD instances
+network	Manage and attach containers to networks
+operation	List, show and delete background operations
+profile	Manage profiles
+publish	Publish containers as images
+remote	Manage the list of remote servers
+rename	Rename containers and snapshots
+restart	Restart containers
+restore	Restore containers from snapshots
+snapshot	Create container snapshots
+start	Start containers
+stop	Stop containers
+storage	Manage storage pools and volumes
+version	Show local and remote versions
+        
